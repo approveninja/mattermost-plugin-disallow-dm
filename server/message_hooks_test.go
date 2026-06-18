@@ -137,6 +137,25 @@ func TestMessageWillBePosted(t *testing.T) {
 			wantRejected: false,
 		},
 		{
+			name: "webhook DM allowed when AllowWebhookMessages on",
+			cfg:  &configuration{BlockGroupMessages: true, AllowAdmins: true, AllowSelfMessages: true, AllowWebhookMessages: true},
+			setup: func(api *plugintest.API) {
+				api.On("GetChannel", "channel_dm").Return(dmChannel(humanID, human2ID), nil)
+			},
+			post:         &model.Post{UserId: humanID, ChannelId: "channel_dm", Props: model.StringInterface{model.PostPropsFromWebhook: "true"}},
+			wantRejected: false,
+		},
+		{
+			name: "webhook DM blocked when AllowWebhookMessages off (default)",
+			cfg:  defaultConfig(),
+			setup: func(api *plugintest.API) {
+				registerUsers(api)
+				api.On("GetChannel", "channel_dm").Return(dmChannel(humanID, human2ID), nil)
+			},
+			post:         &model.Post{UserId: humanID, ChannelId: "channel_dm", Props: model.StringInterface{model.PostPropsFromWebhook: "true"}},
+			wantRejected: true,
+		},
+		{
 			name: "admin author allowed when AllowAdmins on",
 			cfg:  defaultConfig(),
 			setup: func(api *plugintest.API) {

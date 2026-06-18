@@ -46,6 +46,13 @@
                 "type": "bool",
                 "help_text": "Allow a user to send messages to their own direct message channel (personal notes).",
                 "default": true
+            },
+            {
+                "key": "AllowWebhookMessages",
+                "display_name": "Allow incoming webhook messages",
+                "type": "bool",
+                "help_text": "Allow posts authored by incoming webhooks (the from_webhook prop) in DMs/GMs. Off by default. SECURITY NOTE: the from_webhook prop can be set by any user via the API unless the server runs Hardened Mode (ExperimentalEnableHardenedMode), so enabling this weakens the block. Bot-owned integrations are always allowed regardless of this setting.",
+                "default": false
             }
         ]
     }

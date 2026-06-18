@@ -30,6 +30,11 @@ type configuration struct {
 
 	// AllowSelfMessages allows a user to message their own DM channel (personal notes).
 	AllowSelfMessages bool
+
+	// AllowWebhookMessages exempts incoming-webhook-authored posts (from_webhook prop).
+	// Off by default: the from_webhook prop is only spoof-proof when the server runs
+	// hardened mode, so enabling this weakens the "cannot be bypassed via API" guarantee.
+	AllowWebhookMessages bool
 }
 
 const defaultRejectionMessage = "Direct messages are disabled by your administrator."
