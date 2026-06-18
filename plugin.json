@@ -18,6 +18,35 @@
     "settings_schema": {
         "header": "",
         "footer": "",
-        "settings": []
+        "settings": [
+            {
+                "key": "RejectionMessage",
+                "display_name": "Rejection message",
+                "type": "text",
+                "help_text": "Message shown to a user when their direct or group message is blocked. Leave blank to use the default.",
+                "default": "Direct messages are disabled by your administrator."
+            },
+            {
+                "key": "BlockGroupMessages",
+                "display_name": "Block group messages",
+                "type": "bool",
+                "help_text": "Also block group messages (3-7 people), not just 1-to-1 direct messages.",
+                "default": true
+            },
+            {
+                "key": "AllowAdmins",
+                "display_name": "Allow system administrators",
+                "type": "bool",
+                "help_text": "Allow direct/group messages whenever a system administrator is involved (sender or recipient).",
+                "default": true
+            },
+            {
+                "key": "AllowSelfMessages",
+                "display_name": "Allow messages to yourself",
+                "type": "bool",
+                "help_text": "Allow a user to send messages to their own direct message channel (personal notes).",
+                "default": true
+            }
+        ]
     }
 }
