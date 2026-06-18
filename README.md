@@ -27,6 +27,12 @@ a DM or GM channel, unless an exception applies.
 
 Only **human-to-human** direct and group messages are blocked.
 
+> **Incoming webhooks owned by a regular (non-bot) user** that post into a DM are
+> blocked by default. They can be allowed via the *Allow incoming webhook messages*
+> setting — but note that toggle is **off by default on purpose**: the `from_webhook`
+> marker is spoofable via the API unless the server runs Hardened Mode, so enabling it
+> weakens the block. Bot-owned webhooks/integrations are always allowed.
+
 ## Configuration
 
 Configured in the System Console under **Plugins → Disallow DM**:
@@ -37,6 +43,7 @@ Configured in the System Console under **Plugins → Disallow DM**:
 | Block group messages | on | Also block group messages (GMs). |
 | Allow admins | on | Allow DMs/GMs whenever a system admin is involved (either sender or recipient). |
 | Allow self-messages | on | Allow messages to yourself (notes). |
+| Allow incoming webhook messages | off | Allow incoming-webhook posts in DMs/GMs. Off by default; spoofable via API unless the server runs Hardened Mode. Bot-owned integrations are allowed regardless. |
 
 ## Building
 

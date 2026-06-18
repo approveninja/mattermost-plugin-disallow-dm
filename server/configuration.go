@@ -2,6 +2,7 @@ package main
 
 import (
 	"reflect"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -17,7 +18,35 @@ import (
 //
 // If you add non-reference types to your configuration struct, be sure to rewrite Clone as a deep
 // copy appropriate for your types.
-type configuration struct{}
+type configuration struct {
+	// RejectionMessage is shown to a user when their DM/GM is blocked.
+	RejectionMessage string
+
+	// BlockGroupMessages also blocks group messages (3-7 people), not just 1-to-1 DMs.
+	BlockGroupMessages bool
+
+	// AllowAdmins allows DMs/GMs whenever a system admin is involved (sender or recipient).
+	AllowAdmins bool
+
+	// AllowSelfMessages allows a user to message their own DM channel (personal notes).
+	AllowSelfMessages bool
+
+	// AllowWebhookMessages exempts incoming-webhook-authored posts (from_webhook prop).
+	// Off by default: the from_webhook prop is only spoof-proof when the server runs
+	// hardened mode, so enabling this weakens the "cannot be bypassed via API" guarantee.
+	AllowWebhookMessages bool
+}
+
+const defaultRejectionMessage = "Direct messages are disabled by your administrator."
+
+// rejectionMessageOrDefault returns the configured rejection message, or the
+// built-in default when the admin left it blank.
+func (c *configuration) rejectionMessageOrDefault() string {
+	if strings.TrimSpace(c.RejectionMessage) == "" {
+		return defaultRejectionMessage
+	}
+	return c.RejectionMessage
+}
 
 // Clone shallow copies the configuration. Your implementation may require a deep copy if
 // your configuration has reference types.

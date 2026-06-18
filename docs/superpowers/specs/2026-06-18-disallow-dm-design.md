@@ -94,6 +94,14 @@ API-backed exception checks run last so failures can be handled with
    - **Self-message** (only if `AllowSelfMessages` is true and channel is
      `Direct`): `channel.GetOtherUserIdForDM(post.UserId) == ""` identifies a
      DM channel with oneself.
+   - **Incoming-webhook post** (only if `AllowWebhookMessages` is true):
+     `post.GetProp(model.PostPropsFromWebhook) == "true"`. **Security caveat:**
+     the `from_webhook` prop is set by the server's webhook handler, but it is
+     only spoof-proof when the server runs hardened mode
+     (`ExperimentalEnableHardenedMode`, default off). When hardened mode is off,
+     any user can set this prop via the API, so enabling this toggle weakens the
+     "cannot be bypassed via API" guarantee. Off by default. Bot-owned webhooks
+     and integrations are exempt regardless of this toggle (via `IsBot`).
 5. **Author lookup** via `p.API.GetUser(post.UserId)`.
    - On error: **reject** (fail closed) — we already know this is a DM/GM and
      cannot confirm an exemption.
@@ -128,6 +136,7 @@ admin sits on *either* end of it. Human↔human conversations are always blocked
 | `BlockGroupMessages` | bool     | `true`  | Also block group messages (GM). |
 | `AllowAdmins`        | bool     | `true`  | Allow DMs/GMs whenever a system admin is involved — admins can message anyone, and anyone can message an admin (bidirectional). |
 | `AllowSelfMessages`  | bool     | `true`  | Allow messages to oneself (notes). |
+| `AllowWebhookMessages` | bool   | `false` | Allow incoming-webhook-authored posts (`from_webhook`) in DMs/GMs. Off by default; spoofable via API unless the server runs hardened mode. Bot-owned integrations are exempt regardless. |
 
 Configuration is read through a thread-safe accessor and refreshed in
 `OnConfigurationChange`, following the starter-template pattern. An empty
@@ -165,6 +174,8 @@ rejection string (empty = allowed). Matrix:
 | Bot author in DM | Direct | bot → human | allowed |
 | **Bot recipient** in DM | Direct | human → bot | allowed |
 | System post in DM | Direct | `system_*` | allowed |
+| Webhook post, `AllowWebhookMessages=true` | Direct | human + `from_webhook` | allowed |
+| Webhook post, `AllowWebhookMessages=false` | Direct | human + `from_webhook` | rejected |
 | Admin author in DM, `AllowAdmins=true` | Direct | admin → human | allowed |
 | **Admin recipient** in DM, `AllowAdmins=true` | Direct | human → admin | allowed |
 | **Admin member** in GM, `AllowAdmins=true` | Group | humans + admin | allowed |

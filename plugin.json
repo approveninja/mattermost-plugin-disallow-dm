@@ -1,9 +1,10 @@
 {
-    "id": "com.mattermost.plugin-starter-template",
-    "name": "Plugin Starter Template",
-    "description": "This plugin serves as a starting point for writing a Mattermost plugin.",
-    "homepage_url": "https://github.com/mattermost/mattermost-plugin-starter-template",
-    "support_url": "https://github.com/mattermost/mattermost-plugin-starter-template/issues",
+    "id": "com.approveninja.disallow-dm",
+    "name": "Disallow DM",
+    "version": "1.0.0-rc1",
+    "description": "Blocks direct and group messages between users so conversations happen in channels.",
+    "homepage_url": "https://github.com/approveninja/mattermost-plugin-disallow-dm",
+    "support_url": "https://github.com/approveninja/mattermost-plugin-disallow-dm/issues",
     "icon_path": "assets/starter-template-icon.svg",
     "min_server_version": "6.2.1",
     "server": {
@@ -15,12 +16,45 @@
             "windows-amd64": "server/dist/plugin-windows-amd64.exe"
         }
     },
-    "webapp": {
-        "bundle_path": "webapp/dist/main.js"
-    },
     "settings_schema": {
         "header": "",
         "footer": "",
-        "settings": []
+        "settings": [
+            {
+                "key": "RejectionMessage",
+                "display_name": "Rejection message",
+                "type": "text",
+                "help_text": "Message shown to a user when their direct or group message is blocked. Leave blank to use the default.",
+                "default": "Direct messages are disabled by your administrator."
+            },
+            {
+                "key": "BlockGroupMessages",
+                "display_name": "Block group messages",
+                "type": "bool",
+                "help_text": "Also block group messages (3-7 people), not just 1-to-1 direct messages.",
+                "default": true
+            },
+            {
+                "key": "AllowAdmins",
+                "display_name": "Allow system administrators",
+                "type": "bool",
+                "help_text": "Allow direct/group messages whenever a system administrator is involved (sender or recipient).",
+                "default": true
+            },
+            {
+                "key": "AllowSelfMessages",
+                "display_name": "Allow messages to yourself",
+                "type": "bool",
+                "help_text": "Allow a user to send messages to their own direct message channel (personal notes).",
+                "default": true
+            },
+            {
+                "key": "AllowWebhookMessages",
+                "display_name": "Allow incoming webhook messages",
+                "type": "bool",
+                "help_text": "Allow posts authored by incoming webhooks (the from_webhook prop) in DMs/GMs. Off by default. SECURITY NOTE: the from_webhook prop can be set by any user via the API unless the server runs Hardened Mode (ExperimentalEnableHardenedMode), so enabling this weakens the block. Bot-owned integrations are always allowed regardless of this setting.",
+                "default": false
+            }
+        ]
     }
 }
