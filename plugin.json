@@ -1,6 +1,7 @@
 {
     "id": "com.approveninja.disallow-dm",
     "name": "Disallow DM",
+    "version": "1.0.0-rc1",
     "description": "Blocks direct and group messages between users so conversations happen in channels.",
     "homepage_url": "https://github.com/approveninja/mattermost-plugin-disallow-dm",
     "support_url": "https://github.com/approveninja/mattermost-plugin-disallow-dm/issues",
