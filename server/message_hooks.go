@@ -49,6 +49,8 @@ func (p *Plugin) MessageWillBePosted(c *plugin.Context, post *model.Post) (*mode
 	if strings.HasPrefix(post.Type, "system_") {
 		return post, ""
 	}
+	// An empty other-user id denotes a self-DM (channel name is id__id, system-generated),
+	// so this check does not over-match real two-person DMs whose other-user id is always non-empty.
 	if cfg.AllowSelfMessages && channel.Type == model.ChannelTypeDirect &&
 		channel.GetOtherUserIdForDM(post.UserId) == "" {
 		return post, ""

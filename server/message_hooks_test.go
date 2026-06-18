@@ -226,6 +226,30 @@ func TestMessageWillBePosted(t *testing.T) {
 			post:         &model.Post{UserId: humanID, ChannelId: "channel_dm"},
 			wantRejected: true,
 		},
+		{
+			name: "participants lookup error in GM fails closed (rejected)",
+			cfg:  defaultConfig(),
+			setup: func(api *plugintest.API) {
+				registerUsers(api)
+				api.On("GetChannel", "channel_gm").Return(gmChannel(), nil)
+				api.On("GetUsersInChannel", "channel_gm", mock.Anything, mock.Anything, mock.Anything).
+					Return(nil, model.NewAppError("GetUsersInChannel", "boom", nil, "boom", 500))
+			},
+			post:         &model.Post{UserId: humanID, ChannelId: "channel_gm"},
+			wantRejected: true,
+		},
+		{
+			name: "admin member in GM rejected when AllowAdmins off",
+			cfg:  &configuration{BlockGroupMessages: true, AllowAdmins: false, AllowSelfMessages: true},
+			setup: func(api *plugintest.API) {
+				registerUsers(api)
+				api.On("GetChannel", "channel_gm").Return(gmChannel(), nil)
+				api.On("GetUsersInChannel", "channel_gm", mock.Anything, mock.Anything, mock.Anything).
+					Return([]*model.User{human(humanID), human(human2ID), admin(adminID)}, nil)
+			},
+			post:         &model.Post{UserId: humanID, ChannelId: "channel_gm"},
+			wantRejected: true,
+		},
 	}
 
 	for _, tc := range cases {
