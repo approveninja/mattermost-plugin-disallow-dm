@@ -17,16 +17,18 @@ const (
 	adminID  = "adminddddddddddddddddddddddd"
 )
 
-func human(id string) *model.User  { return &model.User{Id: id, Roles: "system_user"} }
-func bot(id string) *model.User    { return &model.User{Id: id, Roles: "system_user", IsBot: true} }
-func admin(id string) *model.User  { return &model.User{Id: id, Roles: "system_user system_admin"} }
+func human(id string) *model.User { return &model.User{Id: id, Roles: "system_user"} }
+func bot(id string) *model.User   { return &model.User{Id: id, Roles: "system_user", IsBot: true} }
+func admin(id string) *model.User { return &model.User{Id: id, Roles: "system_user system_admin"} }
 
 func dmChannel(a, b string) *model.Channel {
 	return &model.Channel{Id: "channel_dm", Type: model.ChannelTypeDirect, Name: model.GetDMNameFromIds(a, b)}
 }
+
 func gmChannel() *model.Channel {
 	return &model.Channel{Id: "channel_gm", Type: model.ChannelTypeGroup, Name: "groupchannel"}
 }
+
 func openChannel() *model.Channel {
 	return &model.Channel{Id: "channel_open", Type: model.ChannelTypeOpen, Name: "town-square"}
 }

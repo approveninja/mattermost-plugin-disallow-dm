@@ -1,6 +1,7 @@
 package main
 
 import (
+	"slices"
 	"strings"
 
 	"github.com/mattermost/mattermost/server/public/model"
@@ -14,12 +15,7 @@ func isSystemAdmin(user *model.User) bool {
 	if user == nil {
 		return false
 	}
-	for _, role := range strings.Fields(user.Roles) {
-		if role == systemAdminRole {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(strings.Fields(user.Roles), systemAdminRole)
 }
 
 // MessageWillBePosted blocks human-to-human direct and group messages.
