@@ -31,6 +31,11 @@ mobile, API). System notifications and integrations must keep working.
   attached to any team, so the block is server-wide. (Considered and explicitly
   rejected.)
 - Deleting or hiding existing DM/GM channels and their history.
+- **Editing existing messages.** The block applies to newly posted messages
+  (`MessageWillBePosted`), not to edits (`MessageWillBeUpdated`). Editing a
+  pre-existing DM/GM message is therefore not blocked. For users who never
+  exchanged DMs before the plugin was installed there is no such history to
+  edit, so this is an accepted v1 limitation (revisit in v2 if needed).
 
 ## 3. Approach
 

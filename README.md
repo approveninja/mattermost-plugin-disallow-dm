@@ -47,6 +47,11 @@ make dist
 This produces a plugin bundle under `dist/` that can be uploaded in the System
 Console (**Plugins → Plugin Management**).
 
+## Known limitations
+
+- The block applies to **newly posted** messages, not to **edits** of existing
+  messages. A user editing a pre-existing DM/GM message is not blocked.
+
 ## Development
 
 Scaffolded from the official
