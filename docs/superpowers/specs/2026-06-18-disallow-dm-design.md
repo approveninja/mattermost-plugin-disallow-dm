@@ -16,8 +16,9 @@ mobile, API). System notifications and integrations must keep working.
 ## 2. Scope
 
 ### In scope (v1)
-- Server-side rejection of human-authored posts in DM and GM channels.
-- Configurable exceptions: bots/integrations, system administrators,
+- Server-side rejection of human-to-human posts in DM and GM channels.
+- Always-on exceptions: bots/integrations (either side) and system messages.
+- Configurable exceptions: system administrators (either side) and
   self-messages.
 - Configurable rejection message and a toggle for blocking group messages.
 
@@ -72,25 +73,45 @@ func (p *Plugin) MessageWillBePosted(c *plugin.Context, post *model.Post) (*mode
 Returning a non-empty string rejects the post and shows that string to the user.
 Returning `(post, "")` allows it.
 
-Decision order for each post:
+Decision order for each post. Cheap, pure checks (no API call) run first; the
+API-backed exception checks run last so failures can be handled with
+**scoped fail-closed** (see section 7).
 
 1. **Look up the channel** via `p.API.GetChannel(post.ChannelId)`.
-   - On error: **fail open** (allow + log a warning) so a transient lookup
-     failure never blocks posting platform-wide.
+   - On error: **allow** (+ log a warning). We cannot confirm the channel is a
+     DM/GM, so we must not block — otherwise a transient lookup error would
+     block posting in *every* channel. Fail-closed does **not** apply here.
 2. If channel type is **not** `Direct` and **not** `Group` → allow.
 3. If channel type is `Group` and `BlockGroupMessages` is **false** → allow.
-4. **Exceptions** (any match → allow):
-   - **Bot / integration author:** `p.API.GetUser(post.UserId).IsBot == true`.
-     This naturally lets system bots, webhooks, and other plugins keep DMing
-     users (notifications stay intact).
+4. **Pure exceptions** (no API call; any match → allow):
    - **System post:** `post.Type` starts with `system_` (e.g. join/leave
      messages, system bot messages).
-   - **System administrator author** (only if `AllowAdmins` is true):
-     user roles contain `system_admin`.
    - **Self-message** (only if `AllowSelfMessages` is true and channel is
      `Direct`): `channel.GetOtherUserIdForDM(post.UserId) == ""` identifies a
      DM channel with oneself.
-5. Otherwise → **reject** with `RejectionMessage`.
+5. **Author lookup** via `p.API.GetUser(post.UserId)`.
+   - On error: **reject** (fail closed) — we already know this is a DM/GM and
+     cannot confirm an exemption.
+   - **Bot / integration author** (`user.IsBot == true`) → allow. This lets
+     system bots, webhooks, and other plugins keep DMing users (notifications
+     stay intact).
+   - **Author is a system administrator** (only if `AllowAdmins`) → allow.
+6. **Other participants on the receiving side.** Resolve the other user(s) and
+   allow if any of them qualifies:
+   - **Direct:** `other := channel.GetOtherUserIdForDM(post.UserId)`; if
+     `other != ""`, `p.API.GetUser(other)` — on error **reject** (fail closed).
+   - **Group:** `p.API.GetUsersInChannel(...)` — on error **reject** (fail
+     closed).
+   - Allow if **any** resolved participant is a **bot** (`IsBot`) — a human↔bot
+     conversation is not a user-to-user one.
+   - Allow if `AllowAdmins` and **any** resolved participant is a **system
+     administrator** — admins must be reachable by anyone.
+7. Otherwise → **reject** with `RejectionMessage`.
+
+Two helpers centralize the participant rules: `isSystemAdmin(user)` (checks
+`user.Roles` contains `system_admin`) and the `IsBot` flag. The rules are
+**bidirectional**: a DM/GM is allowed whenever a bot or (when `AllowAdmins`) an
+admin sits on *either* end of it. Human↔human conversations are always blocked.
 
 ## 6. Configuration (System Console)
 
@@ -100,18 +121,26 @@ Decision order for each post:
 |----------------------|----------|---------|---------|
 | `RejectionMessage`   | text     | "Direct messages are disabled by your administrator." | Error shown when a DM/GM is blocked. |
 | `BlockGroupMessages` | bool     | `true`  | Also block group messages (GM). |
-| `AllowAdmins`        | bool     | `true`  | Let system admins send DMs/GMs. |
+| `AllowAdmins`        | bool     | `true`  | Allow DMs/GMs whenever a system admin is involved — admins can message anyone, and anyone can message an admin (bidirectional). |
 | `AllowSelfMessages`  | bool     | `true`  | Allow messages to oneself (notes). |
 
 Configuration is read through a thread-safe accessor and refreshed in
 `OnConfigurationChange`, following the starter-template pattern. An empty
 `RejectionMessage` falls back to the built-in default.
 
-## 7. Error handling
+## 7. Error handling — scoped fail-closed
 
-- **Channel/user lookup failures:** fail open (allow) and log at warn level.
-  Rationale: a blocking plugin must never become a server-wide outage of posting
-  due to a transient API error.
+The plugin fails **closed** (blocks on error), but only once it is certain the
+message is a private one. This keeps strictness where it matters without risking
+a server-wide posting outage.
+
+- **`GetChannel` fails (channel type unknown):** **allow** + warn-log. We cannot
+  tell whether the message is a DM/GM; blocking here would block *all* channels
+  during a transient error. This is the one deliberate fail-open point.
+- **Any error after the channel is confirmed to be DM/GM** (author `GetUser`,
+  recipient `GetUser`, group `GetUsersInChannel`): **reject** (fail closed) and
+  warn-log. We know it is a private message and cannot confirm an exemption, so
+  we err toward blocking.
 - **Unknown/edge channel types:** only `Direct` and `Group` are ever blocked;
   everything else is allowed by default.
 
@@ -122,19 +151,24 @@ Unit tests in `message_hooks_test.go` using
 `p.API`. Each test mocks `GetChannel`/`GetUser` and asserts the returned
 rejection string (empty = allowed). Matrix:
 
-| Case | Channel | Author | Expect |
-|------|---------|--------|--------|
-| DM between two humans | Direct | human | rejected |
-| GM, blocking on | Group | human | rejected |
-| GM, `BlockGroupMessages=false` | Group | human | allowed |
+| Case | Channel | Participants | Expect |
+|------|---------|--------------|--------|
+| DM between two humans | Direct | human → human | rejected |
+| GM of humans, blocking on | Group | humans | rejected |
+| GM, `BlockGroupMessages=false` | Group | humans | allowed |
 | Public/private channel | Open/Private | human | allowed |
-| Bot author in DM | Direct | bot | allowed |
-| System post in DM | Direct | system_* | allowed |
-| Admin in DM, `AllowAdmins=true` | Direct | admin | allowed |
-| Admin in DM, `AllowAdmins=false` | Direct | admin | rejected |
+| Bot author in DM | Direct | bot → human | allowed |
+| **Bot recipient** in DM | Direct | human → bot | allowed |
+| System post in DM | Direct | `system_*` | allowed |
+| Admin author in DM, `AllowAdmins=true` | Direct | admin → human | allowed |
+| **Admin recipient** in DM, `AllowAdmins=true` | Direct | human → admin | allowed |
+| **Admin member** in GM, `AllowAdmins=true` | Group | humans + admin | allowed |
+| Admin author in DM, `AllowAdmins=false` | Direct | admin → human | rejected |
+| Admin recipient in DM, `AllowAdmins=false` | Direct | human → admin | rejected |
 | Self-DM, `AllowSelfMessages=true` | Direct (self) | human | allowed |
 | Self-DM, `AllowSelfMessages=false` | Direct (self) | human | rejected |
-| `GetChannel` error | — | — | allowed (fail open) |
+| `GetChannel` error | unknown | — | allowed (fail open) |
+| `GetUser`/members error in confirmed DM/GM | Direct/Group | human | rejected (fail closed) |
 
 CI: the starter template's GitHub Actions workflow runs build + lint
 (`golangci-lint`) + tests on push/PR.

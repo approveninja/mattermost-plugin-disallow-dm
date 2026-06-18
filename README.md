@@ -18,10 +18,14 @@ a DM or GM channel, unless an exception applies.
 
 ### Exceptions (allowed through)
 
-- **Bots and integrations** — so notifications and other plugins still work.
+- **Bots and integrations** on either side — a human can message a bot and a bot
+  can message a human, so notifications and bot commands still work.
 - **System messages** (`system_*` post types).
-- **System administrators** — configurable.
+- **System administrators** on either side — admins can message anyone and
+  anyone can message an admin (configurable).
 - **Messages to yourself** (self-notes) — configurable.
+
+Only **human-to-human** direct and group messages are blocked.
 
 ## Configuration
 
@@ -31,7 +35,7 @@ Configured in the System Console under **Plugins → Disallow DM**:
 |---|---|---|
 | Rejection message | "Direct messages are disabled by your administrator." | Text shown when a DM/GM is blocked. |
 | Block group messages | on | Also block group messages (GMs). |
-| Allow admins | on | Let system administrators send DMs/GMs. |
+| Allow admins | on | Allow DMs/GMs whenever a system admin is involved (either sender or recipient). |
 | Allow self-messages | on | Allow messages to yourself (notes). |
 
 ## Building
